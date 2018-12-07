@@ -20,19 +20,22 @@ import io.moquette.server.config.IConfig;
 import io.moquette.server.config.MemoryConfig;
 import io.moquette.testclient.Client;
 import io.netty.handler.codec.mqtt.*;
-import io.netty.handler.codec.mqtt.MqttMessage;
-import org.eclipse.paho.client.mqttv3.*;
+import org.awaitility.Awaitility;
+import org.eclipse.paho.client.mqttv3.IMqttClient;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttClientPersistence;
+import org.eclipse.paho.client.mqttv3.MqttException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.awaitility.Awaitility;
+
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.*;
+
+import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 

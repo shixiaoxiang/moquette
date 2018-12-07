@@ -16,15 +16,15 @@
 
 package io.moquette.server;
 
-import java.io.IOException;
-import java.util.Properties;
-
 import io.moquette.BrokerConstants;
 import io.netty.handler.ssl.OpenSsl;
 import io.netty.handler.ssl.SslProvider;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Properties;
 
 /**
  * Check that Moquette could also handle SSL with OpenSSL provider.

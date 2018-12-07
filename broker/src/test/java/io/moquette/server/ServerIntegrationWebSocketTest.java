@@ -17,19 +17,21 @@
 package io.moquette.server;
 
 import io.moquette.BrokerConstants;
+import io.moquette.server.config.IConfig;
 import io.moquette.server.config.MemoryConfig;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
-import io.moquette.server.config.IConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.URI;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+
 import static org.junit.Assert.assertTrue;
 
 /**

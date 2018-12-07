@@ -18,10 +18,12 @@ package io.moquette.server.config;
 
 import org.junit.Before;
 import org.junit.Test;
+
 import java.io.Reader;
 import java.io.StringReader;
 import java.text.ParseException;
 import java.util.Properties;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 

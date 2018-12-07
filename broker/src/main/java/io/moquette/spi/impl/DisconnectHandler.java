@@ -2,7 +2,6 @@ package io.moquette.spi.impl;
 
 import io.moquette.connections.IConnectionsManager;
 import io.moquette.server.ConnectionDescriptor;
-import io.moquette.server.netty.NettyUtils;
 import io.moquette.spi.ClientSession;
 import io.moquette.spi.impl.subscriptions.ISubscriptionsDirectory;
 import io.moquette.spi.impl.subscriptions.Subscription;

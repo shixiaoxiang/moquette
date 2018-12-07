@@ -16,8 +16,9 @@
 
 package io.moquette.spi.impl.security;
 
-import static io.moquette.spi.impl.security.Authorization.Permission.READWRITE;
 import io.moquette.spi.impl.subscriptions.Topic;
+
+import static io.moquette.spi.impl.security.Authorization.Permission.READWRITE;
 
 /**
  * Carries the read/write authorization to topics for the users.

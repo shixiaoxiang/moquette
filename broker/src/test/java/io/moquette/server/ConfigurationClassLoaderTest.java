@@ -17,19 +17,21 @@
 package io.moquette.server;
 
 import io.moquette.BrokerConstants;
+import io.moquette.persistence.MemoryMessagesStore;
+import io.moquette.persistence.MemorySessionStore;
+import io.moquette.persistence.MemoryStorageService;
 import io.moquette.server.config.IConfig;
 import io.moquette.server.config.MemoryConfig;
 import io.moquette.spi.impl.subscriptions.Topic;
-import io.moquette.persistence.MemoryMessagesStore;
-import io.moquette.persistence.MemoryStorageService;
-import io.moquette.persistence.MemorySessionStore;
 import io.moquette.spi.security.IAuthenticator;
 import io.moquette.spi.security.IAuthorizator;
 import org.junit.After;
 import org.junit.Test;
+
 import java.io.IOException;
 import java.util.Properties;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertTrue;
 
 public class ConfigurationClassLoaderTest implements IAuthenticator, IAuthorizator {
 

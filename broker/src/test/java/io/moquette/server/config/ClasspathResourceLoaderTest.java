@@ -16,9 +16,10 @@
 
 package io.moquette.server.config;
 
-import static org.junit.Assert.*;
-import org.junit.Test;
 import io.moquette.BrokerConstants;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 public class ClasspathResourceLoaderTest {
 

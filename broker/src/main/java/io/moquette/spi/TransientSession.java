@@ -16,7 +16,6 @@
 package io.moquette.spi;
 
 import io.moquette.spi.IMessagesStore.StoredMessage;
-import io.moquette.spi.impl.ProtocolProcessor;
 import io.moquette.spi.impl.WillMessage;
 import io.moquette.spi.impl.subscriptions.Subscription;
 import io.moquette.spi.impl.subscriptions.Topic;

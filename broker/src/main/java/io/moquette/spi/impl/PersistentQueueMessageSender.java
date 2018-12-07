@@ -18,9 +18,7 @@ package io.moquette.spi.impl;
 
 import io.moquette.connections.IConnectionsManager;
 import io.moquette.server.ConnectionDescriptor;
-import io.moquette.server.ConnectionDescriptorStore;
 import io.moquette.spi.ClientSession;
-import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import org.slf4j.Logger;

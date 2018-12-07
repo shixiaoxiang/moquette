@@ -26,11 +26,13 @@ import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Properties;
+
 import static org.junit.Assert.assertTrue;
 
 public class ServerIntegrationDBAuthenticatorTest {

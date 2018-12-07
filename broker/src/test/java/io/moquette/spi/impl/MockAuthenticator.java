@@ -16,9 +16,10 @@
 
 package io.moquette.spi.impl;
 
+import io.moquette.spi.security.IAuthenticator;
+
 import java.util.Map;
 import java.util.Set;
-import io.moquette.spi.security.IAuthenticator;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 

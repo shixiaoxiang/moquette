@@ -16,23 +16,6 @@
 
 package io.moquette.server;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.security.GeneralSecurityException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import java.util.Collections;
-import java.util.Objects;
-
 import io.moquette.BrokerConstants;
 import io.moquette.server.config.IConfig;
 import io.moquette.spi.security.ISslContextCreator;
@@ -40,10 +23,18 @@ import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.TrustManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.*;
+import java.net.URL;
+import java.security.*;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.util.Collections;
+import java.util.Objects;
 
 /**
  * Moquette server implementation to load SSL certificate from local filesystem path configured in
@@ -62,7 +53,6 @@ class DefaultMoquetteSslContextCreator implements ISslContextCreator {
     @Override
     public SslContext initSSLContext() {
         LOG.info("Checking SSL configuration properties...");
-
         final String keyPassword = props.getProperty(BrokerConstants.KEY_MANAGER_PASSWORD_PROPERTY_NAME);
         if (keyPassword == null || keyPassword.isEmpty()) {
             LOG.warn("The key manager password is null or empty. The SSL context won't be initialized.");

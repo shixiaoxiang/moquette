@@ -16,10 +16,12 @@
 
 package io.moquette.spi.impl.security;
 
+import io.moquette.spi.impl.subscriptions.Topic;
 import org.junit.Before;
 import org.junit.Test;
-import io.moquette.spi.impl.subscriptions.Topic;
+
 import java.text.ParseException;
+
 import static org.junit.Assert.*;
 
 public class AuthorizationsCollectorTest {
