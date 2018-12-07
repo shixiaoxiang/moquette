@@ -16,19 +16,18 @@
 
 package io.moquette.spec.v3_1_1.connection;
 
+import io.moquette.broker.Server;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import java.io.File;
+import java.io.IOException;
 import io.moquette.BrokerConstants;
-import io.moquette.server.Server;
+import io.moquette.integration.IntegrationUtils;
 import io.moquette.testclient.RawClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.io.File;
-import java.io.IOException;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class ConnectionIT {
 
@@ -55,6 +54,7 @@ public class ConnectionIT {
                     dbFile.delete());
         }
         assertFalse(dbFile.exists());
+        IntegrationUtils.clearTestStorage();
     }
 
     @Test(timeout = 3000)
