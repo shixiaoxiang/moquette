@@ -1,9 +1,9 @@
 
 ## What is Moquette?
 
-[![Build Status](https://api.travis-ci.org/andsel/moquette.svg?branch=master)](https://travis-ci.org/andsel/moquette)
+[![Build Status](https://api.travis-ci.org/moquette-io/moquette.svg?branch=master)](https://travis-ci.org/moquette-io/moquette)
 
-* [Documentation reference guide](http://andsel.github.io/moquette/) Guide on how to use and configure Moquette
+* [Documentation reference guide](http://moquette-io.github.io/moquette/) Guide on how to use and configure Moquette
 * [Google Group](https://groups.google.com/forum/#!forum/moquette-mqtt) Google Group to participate in development discussions.
 
 Moquette aims to be a MQTT compliant broker. The broker supports QoS 0, QoS 1 and QoS 2.
@@ -12,7 +12,7 @@ Its designed to be evented, uses Netty for the protocol encoding and decoding pa
  
 ## Embeddable
 
-[Freedomotic](http://www.freedomotic.com/) Is an home automation framework, uses Moquette embedded to interface with MQTT world.
+[Freedomotic](https://www.freedomotic-iot.com/) is an home automation framework and uses Moquette embedded to interface with MQTT by a specific [plugin](https://freedomotic-user-manual.readthedocs.io/en/latest/plugins/mqtt-broker.html). 
 
 Moquette is also used into [Atomize Spin](http://atomizesoftware.com/spin) a software solution for the logistic field.
 
@@ -25,11 +25,11 @@ Point your browser to [cloud instance](http://broker.moquette.io), request an ac
 
 ## 1 minute set up
 
-Start play with it, download the self distribution tar from [BinTray](https://bintray.com/artifact/download/andsel/generic/moquette-0.12.tar.gz) ,
+Start play with it, download the self distribution tar from [BinTray](https://bintray.com/artifact/download/andsel/generic/moquette-0.12.1.tar.gz) ,
 the un untar and start the broker listening on `1883` port and enjoy!
 
 ```
-tar xvf moquette-distribution-0.12.tar.gz
+tar xvf moquette-distribution-0.12.1.tar.gz
 cd bin
 ./moquette.sh
 ```
@@ -66,7 +66,7 @@ Include dependency in your project:
 <dependency>
       <groupId>io.moquette</groupId>
       <artifactId>moquette-broker</artifactId>
-      <version>0.12</version>
+      <version>0.12.1</version>
 </dependency>
 ```
 
@@ -79,3 +79,11 @@ After a git clone of the repository, cd into the cloned sources and: `./gradlew 
 
 In distribution/build directory will be produced the selfcontained file for the broker with all dependencies and a running script. 
   
+
+---
+
+If you like Moquette you can support us by donating.
+
+<a href="https://paypal.me/andsel">
+  <img src="https://cloud.githubusercontent.com/assets/743833/23549988/02d66ccc-000f-11e7-8764-a257b21377bd.gif">
+</a>

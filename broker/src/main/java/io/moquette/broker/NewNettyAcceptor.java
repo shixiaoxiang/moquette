@@ -46,7 +46,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLEngine;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -56,6 +60,8 @@ import static io.netty.channel.ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE;
 class NewNettyAcceptor {
 
     private static final String MQTT_SUBPROTOCOL_CSV_LIST = "mqtt, mqttv3.1, mqttv3.1.1";
+    public static final String PLAIN_MQTT_PROTO = "TCP MQTT";
+    public static final String SSL_MQTT_PROTO = "SSL MQTT";
 
     static class WebSocketFrameToByteBufDecoder extends MessageToMessageDecoder<BinaryWebSocketFrame> {
 
@@ -89,10 +95,33 @@ class NewNettyAcceptor {
         abstract void init(SocketChannel channel) throws Exception;
     }
 
+
+    private class LocalPortReaderFutureListener implements ChannelFutureListener {
+        private String transportName;
+
+        LocalPortReaderFutureListener(String transportName) {
+            this.transportName = transportName;
+        }
+
+        @Override
+        public void operationComplete(ChannelFuture future) throws Exception {
+            if (future.isSuccess()) {
+                final SocketAddress localAddress = future.channel().localAddress();
+                if (localAddress instanceof InetSocketAddress) {
+                    InetSocketAddress inetAddress = (InetSocketAddress) localAddress;
+                    LOG.debug("bound {} port: {}", transportName, inetAddress.getPort());
+                    int port = inetAddress.getPort();
+                    ports.put(transportName, port);
+                }
+            }
+        }
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(NewNettyAcceptor.class);
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
+    private final Map<String, Integer> ports = new HashMap<>();
     private BytesMetricsCollector bytesMetricsCollector = new BytesMetricsCollector();
     private MessageMetricsCollector metricsCollector = new MessageMetricsCollector();
     private Optional<? extends ChannelInboundHandler> metrics;
@@ -187,10 +216,20 @@ class NewNettyAcceptor {
             // Bind and start to accept incoming connections.
             ChannelFuture f = b.bind(host, port);
             LOG.info("Server bound to host={}, port={}, protocol={}", host, port, protocol);
-            f.sync().addListener(FIRE_EXCEPTION_ON_FAILURE);
+            f.sync()
+                .addListener(new LocalPortReaderFutureListener(protocol))
+                .addListener(FIRE_EXCEPTION_ON_FAILURE);
         } catch (InterruptedException ex) {
             LOG.error("An interruptedException was caught while initializing integration. Protocol={}", protocol, ex);
         }
+    }
+
+    public int getPort() {
+        return ports.computeIfAbsent(PLAIN_MQTT_PROTO, i -> 0);
+    }
+
+    public int getSslPort() {
+        return ports.computeIfAbsent(SSL_MQTT_PROTO, i -> 0);
     }
 
     private void initializePlainTCPTransport(NewNettyMQTTHandler handler, IConfig props) {
@@ -204,7 +243,7 @@ class NewNettyAcceptor {
             return;
         }
         int port = Integer.parseInt(tcpPortProp);
-        initFactory(host, port, "TCP MQTT", new PipelineInitializer() {
+        initFactory(host, port, PLAIN_MQTT_PROTO, new PipelineInitializer() {
 
             @Override
             void init(SocketChannel channel) {
@@ -248,6 +287,8 @@ class NewNettyAcceptor {
         final MoquetteIdleTimeoutHandler timeoutHandler = new MoquetteIdleTimeoutHandler();
 
         String host = props.getProperty(BrokerConstants.HOST_PROPERTY_NAME);
+        String path = props.getProperty(BrokerConstants.WEB_SOCKET_PATH_PROPERTY_NAME, BrokerConstants.WEBSOCKET_PATH);
+        int maxFrameSize = props.intProp(BrokerConstants.WEB_SOCKET_MAX_FRAME_SIZE_PROPERTY_NAME, 65536);
         initFactory(host, port, "Websocket MQTT", new PipelineInitializer() {
 
             @Override
@@ -256,7 +297,7 @@ class NewNettyAcceptor {
                 pipeline.addLast(new HttpServerCodec());
                 pipeline.addLast("aggregator", new HttpObjectAggregator(65536));
                 pipeline.addLast("webSocketHandler",
-                        new WebSocketServerProtocolHandler("/mqtt", MQTT_SUBPROTOCOL_CSV_LIST));
+                        new WebSocketServerProtocolHandler(path, MQTT_SUBPROTOCOL_CSV_LIST, false, maxFrameSize));
                 pipeline.addLast("ws2bytebufDecoder", new WebSocketFrameToByteBufDecoder());
                 pipeline.addLast("bytebuf2wsEncoder", new ByteBufToWebSocketFrameEncoder());
                 configureMQTTPipeline(pipeline, timeoutHandler, handler);
@@ -281,7 +322,7 @@ class NewNettyAcceptor {
         String host = props.getProperty(BrokerConstants.HOST_PROPERTY_NAME);
         String sNeedsClientAuth = props.getProperty(BrokerConstants.NEED_CLIENT_AUTH, "false");
         final boolean needsClientAuth = Boolean.valueOf(sNeedsClientAuth);
-        initFactory(host, sslPort, "SSL MQTT", new PipelineInitializer() {
+        initFactory(host, sslPort, SSL_MQTT_PROTO, new PipelineInitializer() {
 
             @Override
             void init(SocketChannel channel) throws Exception {
@@ -304,6 +345,8 @@ class NewNettyAcceptor {
         int sslPort = Integer.parseInt(sslPortProp);
         final MoquetteIdleTimeoutHandler timeoutHandler = new MoquetteIdleTimeoutHandler();
         String host = props.getProperty(BrokerConstants.HOST_PROPERTY_NAME);
+        String path = props.getProperty(BrokerConstants.WEB_SOCKET_PATH_PROPERTY_NAME, BrokerConstants.WEBSOCKET_PATH);
+        int maxFrameSize = props.intProp(BrokerConstants.WEB_SOCKET_MAX_FRAME_SIZE_PROPERTY_NAME, 65536);
         String sNeedsClientAuth = props.getProperty(BrokerConstants.NEED_CLIENT_AUTH, "false");
         final boolean needsClientAuth = Boolean.valueOf(sNeedsClientAuth);
         initFactory(host, sslPort, "Secure websocket", new PipelineInitializer() {
@@ -316,7 +359,7 @@ class NewNettyAcceptor {
                 pipeline.addLast("httpDecoder", new HttpRequestDecoder());
                 pipeline.addLast("aggregator", new HttpObjectAggregator(65536));
                 pipeline.addLast("webSocketHandler",
-                        new WebSocketServerProtocolHandler("/mqtt", MQTT_SUBPROTOCOL_CSV_LIST));
+                        new WebSocketServerProtocolHandler(path, MQTT_SUBPROTOCOL_CSV_LIST, false, maxFrameSize));
                 pipeline.addLast("ws2bytebufDecoder", new WebSocketFrameToByteBufDecoder());
                 pipeline.addLast("bytebuf2wsEncoder", new ByteBufToWebSocketFrameEncoder());
 

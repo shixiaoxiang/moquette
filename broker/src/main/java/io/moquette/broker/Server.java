@@ -34,10 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -53,11 +50,12 @@ public class Server {
     private PostOffice dispatcher;
     private BrokerInterceptor interceptor;
     private H2Builder h2Builder;
+    private SessionRegistry sessions;
 
     public static void main(String[] args) throws IOException {
         final Server server = new Server();
         server.startServer();
-        System.out.println("Server started, version 0.12.1-SNAPSHOT");
+        System.out.println("Server started, version 0.13-SNAPSHOT");
         //Bind a shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(server::stopServer));
     }
@@ -136,7 +134,7 @@ public class Server {
     }
 
     public void startServer(IConfig config, List<? extends InterceptHandler> handlers, ISslContextCreator sslCtxCreator,
-                            IAuthenticator authenticator, IAuthorizatorPolicy authorizatorPolicy) throws IOException {
+                            IAuthenticator authenticator, IAuthorizatorPolicy authorizatorPolicy) {
         final long start = System.currentTimeMillis();
         if (handlers == null) {
             handlers = Collections.emptyList();
@@ -178,8 +176,9 @@ public class Server {
 
         ISubscriptionsDirectory subscriptions = new CTrieSubscriptionDirectory();
         subscriptions.init(subscriptionsRepository);
-        SessionRegistry sessions = new SessionRegistry(subscriptions, queueRepository);
-        dispatcher = new PostOffice(subscriptions, authorizatorPolicy, retainedRepository, sessions, interceptor);
+        final Authorizator authorizator = new Authorizator(authorizatorPolicy);
+        sessions = new SessionRegistry(subscriptions, queueRepository, authorizator);
+        dispatcher = new PostOffice(subscriptions, retainedRepository, sessions, interceptor, authorizator);
         final BrokerConfiguration brokerConfig = new BrokerConfiguration(config);
         MQTTConnectionFactory connectionFactory = new MQTTConnectionFactory(brokerConfig, authenticator, sessions,
                                                                             dispatcher);
@@ -194,11 +193,6 @@ public class Server {
     }
 
     private IAuthorizatorPolicy initializeAuthorizatorPolicy(IAuthorizatorPolicy authorizatorPolicy, IConfig props) {
-//        if (authorizatorPolicy == null) {
-//            authorizatorPolicy = new PermitAllAuthorizatorPolicy();
-//        }
-//        return authorizatorPolicy;
-
         LOG.debug("Configuring MQTT authorizator policy");
         String authorizatorClassName = props.getProperty(BrokerConstants.AUTHORIZATOR_CLASS_NAME, "");
         if (authorizatorPolicy == null && !authorizatorClassName.isEmpty()) {
@@ -214,7 +208,7 @@ public class Server {
                     IResourceLoader resourceLoader = props.getResourceLoader();
                     authorizatorPolicy = ACLFileParser.parse(resourceLoader.loadResource(aclFilePath));
                 } catch (ParseException pex) {
-                    LOG.error("Unable to parse ACL file. path=" + aclFilePath, pex);
+                    LOG.error("Unable to parse ACL file. path = {}", aclFilePath, pex);
                 }
             } else {
                 authorizatorPolicy = new PermitAllAuthorizatorPolicy();
@@ -225,11 +219,6 @@ public class Server {
     }
 
     private IAuthenticator initializeAuthenticator(IAuthenticator authenticator, IConfig props) {
-//        if (authenticator == null) {
-//            authenticator = new AcceptAllAuthenticator();
-//        }
-//        return authenticator;
-
         LOG.debug("Configuring MQTT authenticator");
         String authenticatorClassName = props.getProperty(BrokerConstants.AUTHENTICATOR_CLASS_NAME, "");
 
@@ -339,6 +328,14 @@ public class Server {
         LOG.info("Moquette integration has been stopped.");
     }
 
+    public int getPort() {
+        return acceptor.getPort();
+    }
+
+    public int getSslPort() {
+        return acceptor.getSslPort();
+    }
+
     /**
      * SPI method used by Broker embedded applications to get list of subscribers. Returns null if
      * the broker is not started.
@@ -381,5 +378,12 @@ public class Server {
         }
         LOG.info("Removing MQTT message interceptor. InterceptorId={}", interceptHandler.getID());
         interceptor.removeInterceptHandler(interceptHandler);
+    }
+
+    /**
+     * Return a list of descriptors of connected clients.
+     * */
+    public Collection<ClientDescriptor> listConnectedClients() {
+        return sessions.listConnectedClients();
     }
 }

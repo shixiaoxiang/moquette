@@ -26,10 +26,13 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
+import java.util.Collection;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 public class SessionRegistry {
 
@@ -61,11 +64,15 @@ public class SessionRegistry {
     private final ConcurrentMap<String, Session> pool = new ConcurrentHashMap<>();
     private final ISubscriptionsDirectory subscriptionsDirectory;
     private final IQueueRepository queueRepository;
+    private final Authorizator authorizator;
     private final ConcurrentMap<String, Queue<SessionRegistry.EnqueuedMessage>> queues = new ConcurrentHashMap<>();
 
-    SessionRegistry(ISubscriptionsDirectory subscriptionsDirectory, IQueueRepository queueRepository) {
+    SessionRegistry(ISubscriptionsDirectory subscriptionsDirectory,
+                    IQueueRepository queueRepository,
+                    Authorizator authorizator) {
         this.subscriptionsDirectory = subscriptionsDirectory;
         this.queueRepository = queueRepository;
+        this.authorizator = authorizator;
     }
 
     void bindToSession(MQTTConnection mqttConnection, MqttConnectMessage msg, String clientId) {
@@ -129,7 +136,8 @@ public class SessionRegistry {
             LOG.trace("case 2, oldSession with same CId {} disconnected", clientId);
         } else if (!newIsClean && oldSession.disconnected()) {
             // case 3
-            reactivateSubscriptions(oldSession);
+            final String username = mqttConnection.getUsername();
+            reactivateSubscriptions(oldSession, username);
 
             // mark as connected
             final boolean connecting = oldSession.assignState(SessionStatus.DISCONNECTED, SessionStatus.CONNECTING);
@@ -165,8 +173,14 @@ public class SessionRegistry {
         return postConnectAction;
     }
 
-    private void reactivateSubscriptions(Session session) {
+    private void reactivateSubscriptions(Session session, String username) {
+        //verify if subscription still satisfy read ACL permissions
         for (Subscription existingSub : session.getSubscriptions()) {
+            final boolean topicReadable = authorizator.canRead(existingSub.getTopicFilter(), username,
+                                                               session.getClientID());
+            if (!topicReadable) {
+                subscriptionsDirectory.removeSubscription(existingSub.getTopicFilter(), session.getClientID());
+            }
             // TODO
 //            subscriptionsDirectory.reactivate(existingSub.getTopicFilter(), session.getClientID());
         }
@@ -187,7 +201,7 @@ public class SessionRegistry {
             final Session.Will will = createWill(msg);
             newSession = new Session(clientId, clean, will, sessionQueue);
         } else {
-            newSession = new Session(clean, clientId, sessionQueue);
+            newSession = new Session(clientId, clean, sessionQueue);
         }
 
         newSession.markConnected();
@@ -234,5 +248,20 @@ public class SessionRegistry {
 
     private void dropQueuesForClient(String clientId) {
         queues.remove(clientId);
+    }
+
+    Collection<ClientDescriptor> listConnectedClients() {
+        return pool.values().stream()
+            .filter(Session::connected)
+            .map(this::createClientDescriptor)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .collect(Collectors.toList());
+    }
+
+    private Optional<ClientDescriptor> createClientDescriptor(Session s) {
+        final String clientID = s.getClientID();
+        final Optional<InetSocketAddress> remoteAddressOpt = s.remoteAddress();
+        return remoteAddressOpt.map(r -> new ClientDescriptor(clientID, r.getHostString(), r.getPort()));
     }
 }

@@ -52,7 +52,7 @@ public class PostOfficeInternalPublishTest {
     private SessionRegistry sessionRegistry;
     private MockAuthenticator mockAuthenticator;
     private static final BrokerConfiguration ALLOW_ANONYMOUS_AND_ZERO_BYTES_CLID =
-        new BrokerConfiguration(true, true, false);
+        new BrokerConfiguration(true, true, false, false);
     private MemoryRetainedRepository retainedRepository;
     private MemoryQueueRepository queueRepository;
 
@@ -85,9 +85,11 @@ public class PostOfficeInternalPublishTest {
         retainedRepository = new MemoryRetainedRepository();
         queueRepository = new MemoryQueueRepository();
 
-        SessionRegistry sessionRegistry = new SessionRegistry(subscriptions, queueRepository);
-        sut = new PostOffice(subscriptions, new PermitAllAuthorizatorPolicy(), retainedRepository, sessionRegistry,
-                             ConnectionTestUtils.NO_OBSERVERS_INTERCEPTOR);
+        final PermitAllAuthorizatorPolicy authorizatorPolicy = new PermitAllAuthorizatorPolicy();
+        final Authorizator permitAll = new Authorizator(authorizatorPolicy);
+        SessionRegistry sessionRegistry = new SessionRegistry(subscriptions, queueRepository, permitAll);
+        sut = new PostOffice(subscriptions, retainedRepository, sessionRegistry,
+                             ConnectionTestUtils.NO_OBSERVERS_INTERCEPTOR, permitAll);
         return sessionRegistry;
     }
 

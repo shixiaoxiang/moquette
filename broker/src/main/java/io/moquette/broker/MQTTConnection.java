@@ -19,12 +19,14 @@ import io.moquette.broker.subscriptions.Topic;
 import io.moquette.broker.security.IAuthenticator;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.mqtt.*;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -171,6 +173,8 @@ final class MQTTConnection {
 
             NettyUtils.clientID(channel, clientId);
             LOG.trace("CONNACK sent, channel: {}", channel);
+            postOffice.dispatchConnection(msg);
+            LOG.trace("dispatch connection: {}", msg.toString());
         } catch (SessionCorruptedException scex) {
             LOG.warn("MQTT session for client ID {} cannot be created, channel: {}", clientId, channel);
             abortConnection(CONNECTION_REFUSED_SERVER_UNAVAILABLE);
@@ -257,6 +261,10 @@ final class MQTTConnection {
             sessionRegistry.disconnect(clientID);
         }
         connected = false;
+        //dispatch connection lost to intercept.
+        String userName = NettyUtils.userName(channel);
+        postOffice.dispatchConnectionLost(clientID,userName);
+        LOG.trace("dispatch disconnection: clientId={}, userName={}", clientID, userName);
     }
 
     void sendConnAck(boolean isSessionAlreadyPresent) {
@@ -284,6 +292,9 @@ final class MQTTConnection {
         connected = false;
         channel.close().addListener(FIRE_EXCEPTION_ON_FAILURE);
         LOG.trace("Processed DISCONNECT CId={}, channel: {}", clientID, channel);
+        String userName = NettyUtils.userName(channel);
+        postOffice.dispatchDisconnection(clientID,userName);
+        LOG.trace("dispatch disconnection: clientId={}, userName={}", clientID, userName);
     }
 
     void processSubscribe(MqttSubscribeMessage msg) {
@@ -392,7 +403,14 @@ final class MQTTConnection {
             LOG.debug("OUT {} on channel {}", msg.fixedHeader().messageType(), channel);
         }
         if (channel.isWritable()) {
-            channel.write(msg).addListener(FIRE_EXCEPTION_ON_FAILURE);
+            ChannelFuture channelFuture;
+            if (brokerConfig.isImmediateBufferFlush()) {
+                channelFuture = channel.writeAndFlush(msg);
+            }
+            else {
+                channelFuture = channel.write(msg);
+            }
+            channelFuture.addListener(FIRE_EXCEPTION_ON_FAILURE);
         }
     }
 
@@ -421,6 +439,10 @@ final class MQTTConnection {
 
     String getClientId() {
         return NettyUtils.clientID(channel);
+    }
+
+    String getUsername() {
+        return NettyUtils.userName(channel);
     }
 
     public void sendPublishRetainedQos0(Topic topic, MqttQoS qos, ByteBuf payload) {
@@ -474,5 +496,9 @@ final class MQTTConnection {
     @Override
     public String toString() {
         return "MQTTConnection{channel=" + channel + ", connected=" + connected + '}';
+    }
+
+    InetSocketAddress remoteAddress() {
+        return (InetSocketAddress) channel.remoteAddress();
     }
 }
